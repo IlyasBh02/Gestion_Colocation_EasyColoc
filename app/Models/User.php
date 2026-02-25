@@ -46,4 +46,14 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
+
+    public function ownedColocations()
+    {
+        return $this->hasMany(Colocation::class, 'owner_id');
+    }
+
+    public function colocations()
+    {
+        return $this->belongsToMany(Colocation::class);
+    }
 }

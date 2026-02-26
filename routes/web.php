@@ -23,6 +23,8 @@ Route::middleware(['auth', 'banned'])->group(function () {
     // Invitations
     Route::post('/colocations/{colocation}/invitations', [\App\Http\Controllers\InvitationController::class, 'store'])->name('invitations.store');
     Route::get('/invitations/accept/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->name('invitations.accept');
+    Route::post('/colocations/{colocation}/leave', [\App\Http\Controllers\InvitationController::class, 'leave'])->name('colocations.leave');
+    Route::delete('/colocations/{colocation}/members/{user}', [\App\Http\Controllers\InvitationController::class, 'removeMember'])->name('colocations.removeMember');
 });
 
 require __DIR__.'/auth.php';

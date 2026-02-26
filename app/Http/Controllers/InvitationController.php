@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Colocation;
 use App\Models\Invitation;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvitationMail;
 
 class InvitationController extends Controller
 {
@@ -35,10 +37,9 @@ class InvitationController extends Controller
             'status' => 'pending',
         ]);
 
-        // In a real app, you would send an email here
-        // Mail::to($validated['email'])->send(new InvitationMail($invitation));
+        Mail::to($validated['email'])->send(new InvitationMail($invitation));
 
-        return back()->with('success', 'Invitation sent successfully. Token: ' . $invitation->token);
+        return back()->with('success', 'Invitation sent successfully.');
     }
 
     public function accept($token)
@@ -51,6 +52,10 @@ class InvitationController extends Controller
             return redirect()->route('dashboard')->with('error', 'This invitation was sent to another email address.');
         }
 
+        if ($user->hasActiveMembership()) {
+            return redirect()->route('dashboard')->with('error', 'You cannot accept an invitation while you have an active membership.');
+        }
+
         // Add user to members
         $colocation->members()->attach($user->id);
 
@@ -58,5 +63,41 @@ class InvitationController extends Controller
         $invitation->update(['status' => 'accepted']);
 
         return redirect()->route('colocations.show', $colocation)->with('success', 'You have joined the colocation!');
+    }
+
+    public function leave(Colocation $colocation)
+    {
+        $user = Auth::user();
+
+        if (!$colocation->members->contains($user)) {
+            return back()->with('error', 'You are not a member of this colocation.');
+        }
+
+        if ($colocation->owner_id === $user->id) {
+            return back()->with('error', 'Owner cannot leave the colocation. Delete it instead.');
+        }
+
+        $colocation->members()->detach($user->id);
+
+        return redirect()->route('colocations.index')->with('success', 'You have left the colocation.');
+    }
+
+    public function removeMember(Colocation $colocation, $userId)
+    {
+        if (Auth::id() !== $colocation->owner_id) {
+            return back()->with('error', 'Only the owner can remove members.');
+        }
+
+        if ($colocation->owner_id == $userId) {
+            return back()->with('error', 'Cannot remove the owner.');
+        }
+
+        if (!$colocation->members->contains($userId)) {
+            return back()->with('error', 'User is not a member of this colocation.');
+        }
+
+        $colocation->members()->detach($userId);
+
+        return back()->with('success', 'Member removed successfully.');
     }
 }

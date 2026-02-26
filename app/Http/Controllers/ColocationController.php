@@ -25,6 +25,10 @@ class ColocationController extends Controller
 
     public function store(Request $request)
     {
+        if (Auth::user()->hasActiveMembership()) {
+            return back()->with('error', 'You cannot create a new colocation while you have an active membership.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',

@@ -61,4 +61,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Invitation::class, 'email', 'email');
     }
+
+    public function hasActiveMembership(): bool
+    {
+        return $this->ownedColocations()->exists() || $this->colocations()->exists();
+    }
 }

@@ -9,9 +9,11 @@ use App\Models\Invitation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\InvitationMail;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class InvitationController extends Controller
 {
+    use AuthorizesRequests;
     public function store(Request $request, Colocation $colocation)
     {
         $this->authorize('update', $colocation);

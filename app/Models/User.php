@@ -56,4 +56,9 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Colocation::class);
     }
+
+    public function receivedInvitations()
+    {
+        return $this->hasMany(Invitation::class, 'email', 'email');
+    }
 }

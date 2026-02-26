@@ -68,27 +68,69 @@
                         </div>
 
                         <div class="space-y-6">
-                            <div class="bg-gray-50 p-6 rounded-xl border border-gray-100">
-                                <h4 class="font-bold text-gray-900 mb-4 uppercase text-xs tracking-widest">Details</h4>
-                                <ul class="space-y-4">
-                                    <li class="flex justify-between items-center text-sm">
-                                        <span class="text-gray-500">Created:</span>
-                                        <span class="font-medium text-gray-900">{{ $colocation->created_at->format('M d, Y') }}</span>
-                                    </li>
-                                    <li class="flex justify-between items-center text-sm">
-                                        <span class="text-gray-500">Status:</span>
-                                        <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider">Active</span>
-                                    </li>
-                                </ul>
-                            </div>
+                            @if(Auth::id() === $colocation->owner_id)
+                                <div class="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                    <h4 class="font-bold text-gray-900 mb-4 uppercase text-xs tracking-widest">Manage Invitations</h4>
+                                    
+                                    @if(session('success'))
+                                        <div class="mb-4 text-sm text-green-600 font-medium">
+                                            {{ session('success') }}
+                                        </div>
+                                    @endif
+                                    
+                                    @if(session('error'))
+                                        <div class="mb-4 text-sm text-red-600 font-medium">
+                                            {{ session('error') }}
+                                        </div>
+                                    @endif
+
+                                    <form action="{{ route('invitations.store', $colocation) }}" method="POST" class="space-y-4">
+                                        @csrf
+                                        <div>
+                                            <x-input-label for="email" :value="__('Invite by Email')" />
+                                            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" placeholder="friend@example.com" required />
+                                            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                                        </div>
+                                        <x-primary-button class="w-full justify-center">
+                                            {{ __('Send Invitation') }}
+                                        </x-primary-button>
+                                    </form>
+
+                                    <div class="mt-8">
+                                        <h5 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Pending Invitations</h5>
+                                        <ul class="divide-y divide-gray-200">
+                                            @forelse($colocation->invitations()->where('status', 'pending')->get() as $invitation)
+                                                <li class="py-3 flex justify-between items-center">
+                                                    <span class="text-sm text-gray-600">{{ $invitation->email }}</span>
+                                                    <span class="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-bold uppercase">Pending</span>
+                                                </li>
+                                            @empty
+                                                <li class="py-3 text-sm text-gray-400 italic">No pending invitations.</li>
+                                            @endforelse
+                                        </ul>
+                                    </div>
+                                </div>
+                            @endif
                             
                             @if(Auth::id() !== $colocation->owner_id && !$colocation->members->contains(Auth::user()))
-                                <form action="#" method="POST">
-                                    @csrf
-                                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
-                                        Join this Colocation
-                                    </button>
-                                </form>
+                                <div class="bg-indigo-50 p-6 rounded-xl border border-indigo-100">
+                                    <h4 class="font-bold text-indigo-900 mb-4 uppercase text-xs tracking-widest">Wanna Join?</h4>
+                                    <p class="text-sm text-indigo-700 mb-4">You must be invited by the owner to join this colocation.</p>
+                                    
+                                    @php
+                                        $myInvitation = $colocation->invitations()->where('email', Auth::user()->email)->where('status', 'pending')->first();
+                                    @endphp
+
+                                    @if($myInvitation)
+                                        <a href="{{ route('invitations.accept', $myInvitation->token) }}" class="block w-full text-center bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                                            Accept Invitation
+                                        </a>
+                                    @else
+                                        <button disabled class="w-full bg-gray-300 text-gray-500 font-bold py-3 px-6 rounded-lg cursor-not-allowed">
+                                            Waiting for Invitation
+                                        </button>
+                                    @endif
+                                </div>
                             @endif
                         </div>
                     </div>

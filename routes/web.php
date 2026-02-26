@@ -19,6 +19,10 @@ Route::middleware(['auth', 'banned'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::resource('colocations', ColocationController::class);
+    
+    // Invitations
+    Route::post('/colocations/{colocation}/invitations', [\App\Http\Controllers\InvitationController::class, 'store'])->name('invitations.store');
+    Route::get('/invitations/accept/{token}', [\App\Http\Controllers\InvitationController::class, 'accept'])->name('invitations.accept');
 });
 
 require __DIR__.'/auth.php';

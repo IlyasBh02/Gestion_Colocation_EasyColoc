@@ -39,9 +39,20 @@ class ColocationController extends Controller
         return redirect()->route('colocations.index')->with('success', 'Colocation created successfully.');
     }
 
-    public function show(Colocation $colocation)
+    public function show(Request $request, Colocation $colocation)
     {
-        return view('colocations.show', compact('colocation'));
+        $month = $request->get('month', now()->format('Y-m'));
+        
+        $expenses = $colocation->expenses()
+            ->with(['category', 'payer'])
+            ->whereYear('date', substr($month, 0, 4))
+            ->whereMonth('date', substr($month, 5, 2))
+            ->orderBy('date', 'desc')
+            ->get();
+        
+        $categories = \App\Models\Category::all();
+        
+        return view('colocations.show', compact('colocation', 'expenses', 'categories', 'month'));
     }
 
     public function edit(Colocation $colocation)

@@ -31,6 +31,85 @@
                             <div class="mt-12">
                                 <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Expenses
+                                </h3>
+
+                                <div class="mb-4 flex items-center justify-between">
+                                    <form method="GET" class="flex items-center space-x-2">
+                                        <input type="month" name="month" value="{{ $month }}" class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">
+                                        <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Filter</button>
+                                    </form>
+                                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                                        Total: <span class="font-bold text-gray-900 dark:text-gray-100">${{ number_format($expenses->sum('amount'), 2) }}</span>
+                                    </div>
+                                </div>
+
+                                @if($colocation->members->contains(Auth::user()) || $colocation->owner_id === Auth::id())
+                                    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800">
+                                        <form action="{{ route('expenses.store', $colocation) }}" method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                            @csrf
+                                            <div>
+                                                <select name="category_id" required class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                                                    <option value="">Category</option>
+                                                    @foreach($categories as $category)
+                                                        <option value="{{ $category->id }}">{{ $category->icon }} {{ $category->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <input type="text" name="description" placeholder="Description" required class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                                            </div>
+                                            <div>
+                                                <input type="number" name="amount" step="0.01" min="0.01" placeholder="Amount" required class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                                            </div>
+                                            <div>
+                                                <input type="date" name="date" value="{{ now()->format('Y-m-d') }}" required class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
+                                            </div>
+                                            <div>
+                                                <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm font-medium">Add</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                @endif
+
+                                <div class="space-y-2">
+                                    @forelse($expenses as $expense)
+                                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600 flex items-center justify-between">
+                                            <div class="flex items-center space-x-4 flex-1">
+                                                <div class="text-2xl">{{ $expense->category->icon }}</div>
+                                                <div class="flex-1">
+                                                    <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $expense->description }}</p>
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $expense->category->name }} • {{ $expense->payer->name }} • {{ $expense->date->format('M d, Y') }}</p>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="font-bold text-gray-900 dark:text-gray-100">${{ number_format($expense->amount, 2) }}</p>
+                                                </div>
+                                            </div>
+                                            @if($expense->payer_id === Auth::id() || $colocation->owner_id === Auth::id())
+                                                <form action="{{ route('expenses.destroy', [$colocation, $expense]) }}" method="POST" class="ml-4" onsubmit="return confirm('Delete this expense?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
+                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    @empty
+                                        <div class="p-8 text-center text-gray-500 dark:text-gray-400">
+                                            <p>No expenses for this month.</p>
+                                        </div>
+                                    @endforelse
+                                </div>
+                            </div>
+                            
+                            <div class="mt-12">
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                     Members

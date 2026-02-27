@@ -157,6 +157,67 @@
                                     @endforelse
                                 </div>
                             </div>
+
+                            <div class="mt-12">
+                                <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-500 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    Balances & Settlements
+                                </h3>
+
+                                <div class="mb-6">
+                                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Member Balances</h4>
+                                    <div class="space-y-2">
+                                        @foreach($balances as $balance)
+                                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                                                <div class="flex justify-between items-center">
+                                                    <div>
+                                                        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $balance['user']->name }}</p>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Paid: ${{ number_format($balance['total_paid'], 2) }} | Share: ${{ number_format($balance['share'], 2) }}</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        @if($balance['balance'] > 0.01)
+                                                            <p class="font-bold text-green-600 dark:text-green-400">+${{ number_format($balance['balance'], 2) }}</p>
+                                                            <p class="text-xs text-green-600 dark:text-green-400">To receive</p>
+                                                        @elseif($balance['balance'] < -0.01)
+                                                            <p class="font-bold text-red-600 dark:text-red-400">-${{ number_format(abs($balance['balance']), 2) }}</p>
+                                                            <p class="text-xs text-red-600 dark:text-red-400">To pay</p>
+                                                        @else
+                                                            <p class="font-bold text-gray-600 dark:text-gray-400">$0.00</p>
+                                                            <p class="text-xs text-gray-600 dark:text-gray-400">Settled</p>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                @if(count($settlements) > 0)
+                                    <div>
+                                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Suggested Payments</h4>
+                                        <div class="space-y-2">
+                                            @foreach($settlements as $settlement)
+                                                <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800 flex items-center justify-between">
+                                                    <div class="flex items-center space-x-2">
+                                                        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['from']->name }}</span>
+                                                        <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                                        </svg>
+                                                        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['to']->name }}</span>
+                                                    </div>
+                                                    <span class="font-bold text-blue-600 dark:text-blue-400">${{ number_format($settlement['amount'], 2) }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="p-6 text-center bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-100 dark:border-green-800">
+                                        <p class="text-green-700 dark:text-green-400 font-semibold">✓ All balances are settled!</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
 
                         <div class="space-y-6">

@@ -7,10 +7,18 @@ use Illuminate\Http\Request;
 use App\Models\Colocation;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Services\BalanceService;
 
 class ColocationController extends Controller
 {
     use AuthorizesRequests;
+
+    protected $balanceService;
+
+    public function __construct(BalanceService $balanceService)
+    {
+        $this->balanceService = $balanceService;
+    }
 
     public function index()
     {
@@ -52,7 +60,11 @@ class ColocationController extends Controller
         
         $categories = \App\Models\Category::all();
         
-        return view('colocations.show', compact('colocation', 'expenses', 'categories', 'month'));
+        // Calculate balances and settlements
+        $balances = $this->balanceService->calculateBalances($colocation);
+        $settlements = $this->balanceService->calculateSettlements($colocation);
+        
+        return view('colocations.show', compact('colocation', 'expenses', 'categories', 'month', 'balances', 'settlements'));
     }
 
     public function edit(Colocation $colocation)

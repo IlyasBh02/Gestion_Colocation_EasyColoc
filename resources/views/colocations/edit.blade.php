@@ -20,6 +20,26 @@
                         </div>
 
                         <div>
+                            <x-input-label for="address" :value="__('Address')" />
+                            <x-text-input id="address" name="address" type="text" class="mt-1 block w-full" :value="old('address', $colocation->address)" required />
+                            <x-input-error class="mt-2" :messages="$errors->get('address')" />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <x-input-label for="max_members" :value="__('Maximum Members')" />
+                                <x-text-input id="max_members" name="max_members" type="number" min="2" max="20" class="mt-1 block w-full" :value="old('max_members', $colocation->max_members)" required />
+                                <x-input-error class="mt-2" :messages="$errors->get('max_members')" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="monthly_rent" :value="__('Monthly Rent (Optional)')" />
+                                <x-text-input id="monthly_rent" name="monthly_rent" type="number" step="0.01" min="0" class="mt-1 block w-full" :value="old('monthly_rent', $colocation->monthly_rent)" />
+                                <x-input-error class="mt-2" :messages="$errors->get('monthly_rent')" />
+                            </div>
+                        </div>
+
+                        <div>
                             <x-input-label for="description" :value="__('Description')" />
                             <textarea id="description" name="description" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" rows="4">{{ old('description', $colocation->description) }}</textarea>
                             <x-input-error class="mt-2" :messages="$errors->get('description')" />

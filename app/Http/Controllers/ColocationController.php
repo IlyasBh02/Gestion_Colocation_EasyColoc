@@ -40,6 +40,9 @@ class ColocationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'address' => 'required|string|max:500',
+            'max_members' => 'required|integer|min:2|max:20',
+            'monthly_rent' => 'nullable|numeric|min:0',
         ]);
 
         $colocation = Auth::user()->ownedColocations()->create($validated);
@@ -80,6 +83,9 @@ class ColocationController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'address' => 'required|string|max:500',
+            'max_members' => 'required|integer|min:2|max:20',
+            'monthly_rent' => 'nullable|numeric|min:0',
         ]);
 
         $colocation->update($validated);

@@ -11,14 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('expenses', function (Blueprint $table) {
+        Schema::create('expense_shares', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('colocation_id')->constrained()->onDelete('cascade');
-            $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->foreignId('payer_id')->constrained('users')->onDelete('cascade');
-            $table->string('description');
+            $table->foreignId('expense_id')->constrained('expenses')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users');
             $table->decimal('amount', 10, 2);
-            $table->date('date');
+            $table->boolean('is_paid')->default(false);
             $table->timestamps();
         });
     }
@@ -28,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('expenses');
+        Schema::dropIfExists('expense_shares');
     }
 };

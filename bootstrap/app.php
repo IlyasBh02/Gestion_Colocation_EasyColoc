@@ -12,10 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'banned' => \App\Http\Middleware\CheckBanned::class,
+            'check.banned' => \App\Http\Middleware\CheckBanned::class,
+            'check.admin' => \App\Http\Middleware\CheckAdmin::class,
         ]);
-        
-        $middleware->appendToGroup('web', \App\Http\Middleware\CheckBanned::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

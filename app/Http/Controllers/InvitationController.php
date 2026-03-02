@@ -2,104 +2,122 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
+use App\Mail\ColocationInvitation;
 use App\Models\Colocation;
 use App\Models\Invitation;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Membership;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\InvitationMail;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class InvitationController extends Controller
 {
-    use AuthorizesRequests;
-    public function store(Request $request, Colocation $colocation)
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
     {
-        $this->authorize('update', $colocation);
+        //
+    }
 
-        $validated = $request->validate([
-            'email' => 'required|email|max:255',
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        //
+    }
+
+    public function accept(Request $request , $token = null)
+    {
+        $token = $request->token ?? $token;
+        $invitation = Invitation::where('token' , $token)->firstOrFail();
+
+        if (auth()->user()->hasActiveMembership()) {
+            return redirect()->route('colocations.show')
+            ->with('error', 'You are already a member of a colocation.'); 
+        }
+
+        DB::transaction(function () use ($invitation) {
+            DB::table('colocation_user')->insert([
+                'user_id' => auth()->id(),
+                'colocation_id' => $invitation->colocation_id,
+                'role' => 'member', 
+                'joined_at' => now(),
+            ]);
+            
+            $invitation->delete();
+        });
+
+        return redirect()->route('colocations.show')
+            ->with('success', 'Welcome to your new colocation!');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $user = auth()->user();
+        $colocationId = DB::table('colocation_user')
+            ->where('user_id', $user->id)
+            ->where('role', 'owner')
+            ->whereNull('left_at')
+            ->value('colocation_id');
+        
+        if (!$colocationId) {
+            return response()->json(['error' => 'Only the owner can send invitations.'], 403);
+        }
+        
+        $request->validate([
+            'email' => 'required|email'
         ]);
 
-        // Check if user is already a member
-        $user = \App\Models\User::where('email', $validated['email'])->first();
-        if ($user && ($colocation->members->contains($user) || $colocation->owner_id === $user->id)) {
-            return back()->with('error', 'This user is already a member or the owner.');
-        }
-
-        // Check if there is already a pending invitation
-        if ($colocation->invitations()->where('email', $validated['email'])->where('status', 'pending')->exists()) {
-            return back()->with('error', 'An invitation is already pending for this email.');
-        }
-
-        $invitation = $colocation->invitations()->create([
-            'email' => $validated['email'],
-            'token' => Invitation::generateUniqueToken(),
-            'status' => 'pending',
+        $colocation = Colocation::findOrFail($colocationId);
+        $token = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+            
+        Invitation::create([
+            'email' => $request->email,
+            'token' => $token,
+            'colocation_id' => $colocationId
         ]);
 
-        Mail::to($validated['email'])->send(new InvitationMail($invitation));
-
-        return back()->with('success', 'Invitation sent successfully.');
+        Mail::to($request->email)->send(new ColocationInvitation($token, $colocation->name, $user->name));
+        
+        return response()->json(['message' => 'Invitation sent! Token: ' . $token]);
     }
 
-    public function accept($token)
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
     {
-        $invitation = Invitation::where('token', $token)->where('status', 'pending')->firstOrFail();
-        $colocation = $invitation->colocation;
-        $user = Auth::user();
-
-        if ($user->email !== $invitation->email) {
-            return redirect()->route('dashboard')->with('error', 'This invitation was sent to another email address.');
-        }
-
-        if ($user->hasActiveMembership()) {
-            return redirect()->route('dashboard')->with('error', 'You cannot accept an invitation while you have an active membership.');
-        }
-
-        // Add user to members
-        $colocation->members()->attach($user->id);
-
-        // Update invitation status
-        $invitation->update(['status' => 'accepted']);
-
-        return redirect()->route('colocations.show', $colocation)->with('success', 'You have joined the colocation!');
+        //
     }
 
-    public function leave(Colocation $colocation)
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
     {
-        $user = Auth::user();
-
-        if (!$colocation->members->contains($user)) {
-            return back()->with('error', 'You are not a member of this colocation.');
-        }
-
-        if ($colocation->owner_id === $user->id) {
-            return back()->with('error', 'Owner cannot leave the colocation. Delete it instead.');
-        }
-
-        $colocation->members()->detach($user->id);
-
-        return redirect()->route('colocations.index')->with('success', 'You have left the colocation.');
+        //
     }
 
-    public function removeMember(Colocation $colocation, $userId)
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
     {
-        if (Auth::id() !== $colocation->owner_id) {
-            return back()->with('error', 'Only the owner can remove members.');
-        }
+        //
+    }
 
-        if ($colocation->owner_id == $userId) {
-            return back()->with('error', 'Cannot remove the owner.');
-        }
-
-        if (!$colocation->members->contains($userId)) {
-            return back()->with('error', 'User is not a member of this colocation.');
-        }
-
-        $colocation->members()->detach($userId);
-
-        return back()->with('success', 'Member removed successfully.');
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        //
     }
 }

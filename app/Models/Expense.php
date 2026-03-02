@@ -7,18 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     protected $fillable = [
-        'colocation_id',
-        'category_id',
-        'payer_id',
-        'description',
+        'title',
         'amount',
         'date',
+        'payer_id',
+        'colocation_id',
+        'category_id',
     ];
 
     protected $casts = [
         'date' => 'date',
         'amount' => 'decimal:2',
     ];
+
+    public function payer()
+    {
+        return $this->belongsTo(User::class, 'payer_id');
+    }
 
     public function colocation()
     {
@@ -30,8 +35,8 @@ class Expense extends Model
         return $this->belongsTo(Category::class);
     }
 
-    public function payer()
+    public function shares()
     {
-        return $this->belongsTo(User::class, 'payer_id');
+        return $this->hasMany(ExpenseShare::class);
     }
 }

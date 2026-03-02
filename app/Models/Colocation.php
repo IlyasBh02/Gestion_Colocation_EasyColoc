@@ -9,29 +9,30 @@ class Colocation extends Model
     protected $fillable = [
         'name',
         'description',
-        'address',
-        'max_members',
-        'monthly_rent',
+        'status',
         'owner_id',
     ];
+
+    public function members()
+    {
+        return $this->belongsToMany(User::class, 'colocation_user')
+            ->using(Membership::class)
+            ->withPivot('role', 'joined_at', 'left_at')
+            ->withTimestamps();
+    }
 
     public function owner()
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    public function members()
+    public function expenses()
     {
-        return $this->belongsToMany(User::class);
+        return $this->hasMany(Expense::class);
     }
 
     public function invitations()
     {
         return $this->hasMany(Invitation::class);
-    }
-
-    public function expenses()
-    {
-        return $this->hasMany(Expense::class);
     }
 }

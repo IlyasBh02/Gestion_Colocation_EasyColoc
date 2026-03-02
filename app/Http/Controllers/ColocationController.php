@@ -18,7 +18,8 @@ class ColocationController extends Controller
      */
     public function index()
     {
-        //
+        $colocations = Colocation::with('owner')->get();
+        return view('colocations.index', compact('colocations'));
     }
 
     /**
@@ -26,7 +27,10 @@ class ColocationController extends Controller
      */
     public function create()
     {
-        //
+        if (auth()->user()->hasActiveMembership()) {
+            return redirect()->route('colocations.show')->with('error', 'You cannot create a new colocation while you have an active membership.');
+        }
+        return view('colocations.create');
     }
 
     /**

@@ -52,7 +52,7 @@ Route::middleware(['auth', 'check.banned'])->group(function () {
     Route::get('/colocations/dashboard', [ColocationController::class, 'dashboard'])->name('colocations.show');
     Route::get('/colocations/{id}', [ColocationController::class, 'show'])->name('colocations.details');
     Route::get('/colocations/{id}/edit', [ColocationController::class, 'edit'])->name('colocations.edit');
-    Route::put('/colocations/{id}', [ColocationController::class, 'update'])->name('colocations.update');
+    Route::match(['put', 'patch'], '/colocations/{id}', [ColocationController::class, 'update'])->name('colocations.update');
     Route::delete('/colocations/{id}', [ColocationController::class, 'destroy'])->name('colocations.destroy');
     Route::delete('/colocations/{colocationId}/members/{userId}', [ColocationController::class, 'removeMember'])->name('colocations.removeMember');
     Route::post('/colocations/leave', [ColocationController::class, 'leave'])->name('colocations.leave');

@@ -10,6 +10,11 @@ class Invitation extends Model
         'email',
         'token',
         'colocation_id',
+        'status',
+    ];
+    
+    protected $attributes = [
+        'status' => 'pending',
     ];
 
     public function colocation()

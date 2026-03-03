@@ -11,7 +11,7 @@
                 <div class="p-8">
                     <form action="{{ route('colocations.update', $colocation) }}" method="POST" class="space-y-6">
                         @csrf
-                        @method('PATCH')
+                        @method('PUT')
                         
                         <div>
                             <x-input-label for="name" :value="__('Colocation Name')" />

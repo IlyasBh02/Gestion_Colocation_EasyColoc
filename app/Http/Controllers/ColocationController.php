@@ -155,7 +155,18 @@ class ColocationController extends Controller
             abort(403);
         }
         
-        $colocation->delete();
+        DB::transaction(function() use ($id, $colocation) {
+            DB::table('expense_shares')
+                ->whereIn('expense_id', function($query) use ($id) {
+                    $query->select('id')->from('expenses')->where('colocation_id', $id);
+                })->delete();
+            
+            DB::table('expenses')->where('colocation_id', $id)->delete();
+            DB::table('invitations')->where('colocation_id', $id)->delete();
+            DB::table('colocation_user')->where('colocation_id', $id)->delete();
+            
+            $colocation->delete();
+        });
         
         return redirect()->route('dashboard')->with('success', 'Colocation deleted successfully!');
     }

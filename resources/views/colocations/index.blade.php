@@ -40,7 +40,7 @@
                                 {{ $colocation->description ?? 'No description provided.' }}
                             </p>
                             <div class="mt-6 flex items-center justify-between">
-                                <a href="{{ route('colocations.show', $colocation) }}" class="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 font-medium transition duration-150 group">
+                                <a href="{{ route('colocations.details', $colocation) }}" class="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-300 font-medium transition duration-150 group">
                                     View Details 
                                     <svg class="ml-1 h-4 w-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>

@@ -34,6 +34,10 @@ class InvitationController extends Controller
     {
         $token = $request->token ?? $token;
         $invitation = Invitation::where('token' , $token)->firstOrFail();
+        
+        if (!auth()->check()) {
+            return redirect()->route('login')->with('intended', route('invitations.accept', $token));
+        }
 
         if (auth()->user()->hasActiveMembership()) {
             return redirect()->route('colocations.show')
@@ -46,13 +50,24 @@ class InvitationController extends Controller
                 'colocation_id' => $invitation->colocation_id,
                 'role' => 'member', 
                 'joined_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
             
-            $invitation->delete();
+            $invitation->update(['status' => 'accepted']);
         });
 
         return redirect()->route('colocations.show')
             ->with('success', 'Welcome to your new colocation!');
+    }
+    
+    public function refuse($token)
+    {
+        $invitation = Invitation::where('token', $token)->firstOrFail();
+        
+        $invitation->update(['status' => 'refused']);
+        
+        return redirect()->route('welcome')->with('success', 'Invitation refused.');
     }
 
     /**
@@ -86,7 +101,7 @@ class InvitationController extends Controller
 
         Mail::to($request->email)->send(new ColocationInvitation($token, $colocation->name, $user->name));
         
-        return response()->json(['message' => 'Invitation sent! Token: ' . $token]);
+        return redirect()->back()->with('success', 'Invitation sent successfully! Token: ' . $token);
     }
 
     /**

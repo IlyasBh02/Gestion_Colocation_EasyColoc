@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Colocation;
 use App\Models\Expense;
 use App\Models\ExpenseShare;
+use App\Models\Invitation;
 use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -70,7 +71,23 @@ class ColocationController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $colocation = Colocation::with(['owner', 'members'])->findOrFail($id);
+        
+        $isMember = DB::table('colocation_user')
+            ->where('colocation_id', $id)
+            ->where('user_id', auth()->id())
+            ->whereNull('left_at')
+            ->exists();
+        
+        $pendingInvitation = null;
+        if (auth()->check()) {
+            $pendingInvitation = Invitation::where('colocation_id', $id)
+                ->where('email', auth()->user()->email)
+                ->where('status', 'pending')
+                ->first();
+        }
+        
+        return view('colocations.details', compact('colocation', 'isMember', 'pendingInvitation'));
     }
 
     /**
@@ -190,8 +207,10 @@ class ColocationController extends Controller
             return redirect()->route('welcome');
         }
         
+        $colocation = $membership;
         $colocationId = $membership->id;
-        $selectedMonth = $request->month;
+        $month = $request->month ?? now()->format('Y-m');
+        $selectedMonth = $month;
         
         $expensesQuery = Expense::where('colocation_id', $colocationId)
             ->with(['payer', 'shares.user', 'category']);
@@ -234,6 +253,9 @@ class ColocationController extends Controller
         
         $categories = Category::all();
         
+        $balances = [];
+        $settlements = [];
+        
         $months = [
             ['value' => '1', 'name' => 'January'],
             ['value' => '2', 'name' => 'February'],
@@ -249,7 +271,7 @@ class ColocationController extends Controller
             ['value' => '12', 'name' => 'December'],
         ];
         
-        return view('colocations.show', compact('membership', 'expenses', 'members', 'owedToMe', 'owedByMe', 'ownerId', 'categories', 'selectedMonth', 'months', 'colocationId'));
+        return view('colocations.show', compact('colocation', 'expenses', 'members', 'owedToMe', 'owedByMe', 'ownerId', 'categories', 'month', 'selectedMonth', 'months', 'colocationId', 'balances', 'settlements'));
     }
     
     public function leave()

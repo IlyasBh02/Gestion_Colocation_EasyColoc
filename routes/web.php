@@ -50,6 +50,7 @@ Route::middleware(['auth', 'check.banned'])->group(function () {
     Route::get('/colocations/create', [ColocationController::class, 'create'])->name('colocations.create');
     Route::post('/colocations', [ColocationController::class, 'store'])->name('colocations.store');
     Route::get('/colocations/dashboard', [ColocationController::class, 'dashboard'])->name('colocations.show');
+    Route::get('/colocations/{id}', [ColocationController::class, 'show'])->name('colocations.details');
     Route::get('/colocations/{id}/edit', [ColocationController::class, 'edit'])->name('colocations.edit');
     Route::put('/colocations/{id}', [ColocationController::class, 'update'])->name('colocations.update');
     Route::delete('/colocations/{id}', [ColocationController::class, 'destroy'])->name('colocations.destroy');
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'check.banned'])->group(function () {
 });
 
 Route::get('/invitations/accept/{token}', [InvitationController::class, 'accept'])->name('invitations.accept');
+Route::get('/invitations/refuse/{token}', [InvitationController::class, 'refuse'])->name('invitations.refuse');
 Route::post('/invitations/join', [InvitationController::class, 'accept'])->name('invitations.join.manual');
 
 Route::middleware(['auth', 'check.banned'])->group(function () {

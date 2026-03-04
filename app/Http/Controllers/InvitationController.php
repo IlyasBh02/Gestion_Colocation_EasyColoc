@@ -54,6 +54,39 @@ class InvitationController extends Controller
                 'updated_at' => now()
             ]);
             
+            // Recalculate expense shares for existing unpaid expenses
+            $expenses = \App\Models\Expense::where('colocation_id', $invitation->colocation_id)->get();
+            
+            foreach ($expenses as $expense) {
+                // Get current active members count (including new member)
+                $memberCount = DB::table('colocation_user')
+                    ->where('colocation_id', $invitation->colocation_id)
+                    ->whereNull('left_at')
+                    ->count();
+                
+                // Delete existing shares for this expense
+                \App\Models\ExpenseShare::where('expense_id', $expense->id)->delete();
+                
+                // Get all active members
+                $members = \App\Models\User::whereHas('colocations', function($q) use ($invitation) {
+                    $q->where('colocations.id', $invitation->colocation_id)
+                      ->whereNull('colocation_user.left_at');
+                })->get();
+                
+                // Recalculate share amount
+                $shareAmount = $expense->amount / $memberCount;
+                
+                // Create new shares for all members
+                foreach ($members as $member) {
+                    \App\Models\ExpenseShare::create([
+                        'expense_id' => $expense->id,
+                        'user_id' => $member->id,
+                        'amount' => round($shareAmount, 2),
+                        'is_paid' => $member->id === $expense->payer_id,
+                    ]);
+                }
+            }
+            
             $invitation->update(['status' => 'accepted']);
         });
 

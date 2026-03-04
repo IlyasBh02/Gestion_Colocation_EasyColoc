@@ -197,24 +197,52 @@
 
                                 <div class="mb-6">
                                     <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Member Balances</h4>
-                                    <div class="space-y-2">
+                                    <div class="space-y-3">
                                         @foreach($balances as $balance)
-                                            <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
-                                                <div class="flex justify-between items-center">
-                                                    <div>
+                                            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600">
+                                                <div class="flex justify-between items-start">
+                                                    <div class="flex-1">
                                                         <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $balance['user']->name }}</p>
-                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Paid: ${{ number_format($balance['total_paid'], 2) }} | Share: ${{ number_format($balance['share'], 2) }} | Unpaid: ${{ number_format($balance['unpaid'], 2) }}</p>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Paid: ${{ number_format($balance['total_paid'], 2) }} | Share: ${{ number_format($balance['share'], 2) }} | Unpaid: ${{ number_format($balance['unpaid'], 2) }}</p>
+                                                        
+                                                        @if($balance['unpaid'] > 0)
+                                                            @php
+                                                                $unpaidShares = \App\Models\ExpenseShare::whereHas('expense', function($q) use ($colocation) {
+                                                                    $q->where('colocation_id', $colocation->id);
+                                                                })
+                                                                ->where('user_id', $balance['user']->id)
+                                                                ->where('is_paid', false)
+                                                                ->with('expense')
+                                                                ->get();
+                                                            @endphp
+                                                            
+                                                            <div class="mt-2 space-y-1">
+                                                                @foreach($unpaidShares as $share)
+                                                                    <div class="flex items-center justify-between text-xs bg-red-50 dark:bg-red-900/30 p-2 rounded border border-red-100 dark:border-red-800">
+                                                                        <span class="text-red-700 dark:text-red-300">{{ $share->expense->title }} - ${{ number_format($share->amount, 2) }}</span>
+                                                                        @if(Auth::id() === $balance['user']->id || Auth::id() === $colocation->owner_id)
+                                                                            <form action="{{ route('expense-shares.pay', $share->id) }}" method="POST" class="inline">
+                                                                                @csrf
+                                                                                <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+                                                                                    Pay
+                                                                                </button>
+                                                                            </form>
+                                                                        @endif
+                                                                    </div>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
                                                     </div>
-                                                    <div class="text-right">
-                                                        @if($balance['balance'] > 0.01)
+                                                    <div class="text-right ml-4">
+                                                        @if($balance['unpaid'] > 0.01)
+                                                            <p class="font-bold text-red-600 dark:text-red-400">-${{ number_format($balance['unpaid'], 2) }}</p>
+                                                            <p class="text-xs text-red-600 dark:text-red-400">To pay</p>
+                                                        @elseif($balance['balance'] > 0.01)
                                                             <p class="font-bold text-green-600 dark:text-green-400">+${{ number_format($balance['balance'], 2) }}</p>
                                                             <p class="text-xs text-green-600 dark:text-green-400">To receive</p>
-                                                        @elseif($balance['balance'] < -0.01)
-                                                            <p class="font-bold text-red-600 dark:text-red-400">-${{ number_format(abs($balance['balance']), 2) }}</p>
-                                                            <p class="text-xs text-red-600 dark:text-red-400">To pay</p>
                                                         @else
-                                                            <p class="font-bold text-gray-600 dark:text-gray-400">$0.00</p>
-                                                            <p class="text-xs text-gray-600 dark:text-gray-400">Settled</p>
+                                                            <p class="font-bold text-green-600 dark:text-green-400">$0.00</p>
+                                                            <p class="text-xs text-green-600 dark:text-green-400">Settled</p>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -226,17 +254,46 @@
                                 @if(count($settlements) > 0)
                                     <div>
                                         <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Suggested Payments</h4>
-                                        <div class="space-y-2">
+                                        <div class="space-y-3">
                                             @foreach($settlements as $settlement)
-                                                <div class="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800 flex items-center justify-between">
-                                                    <div class="flex items-center space-x-2">
-                                                        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['from']->name }}</span>
-                                                        <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                                                        </svg>
-                                                        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['to']->name }}</span>
+                                                <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <div class="flex items-center space-x-2">
+                                                            <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['from']->name }}</span>
+                                                            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                                            </svg>
+                                                            <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $settlement['to']->name }}</span>
+                                                        </div>
+                                                        <span class="font-bold text-blue-600 dark:text-blue-400">${{ number_format($settlement['amount'], 2) }}</span>
                                                     </div>
-                                                    <span class="font-bold text-blue-600 dark:text-blue-400">${{ number_format($settlement['amount'], 2) }}</span>
+                                                    
+                                                    @if(Auth::id() === $settlement['from']->id || Auth::id() === $colocation->owner_id)
+                                                        @php
+                                                            $fromUserShares = \App\Models\ExpenseShare::whereHas('expense', function($q) use ($colocation) {
+                                                                $q->where('colocation_id', $colocation->id);
+                                                            })
+                                                            ->where('user_id', $settlement['from']->id)
+                                                            ->where('is_paid', false)
+                                                            ->with('expense')
+                                                            ->take(3)
+                                                            ->get();
+                                                        @endphp
+                                                        
+                                                        <div class="space-y-1">
+                                                            @foreach($fromUserShares as $share)
+                                                                <div class="flex items-center justify-between text-xs bg-white dark:bg-gray-800 p-2 rounded border">
+                                                                    <span class="text-gray-700 dark:text-gray-300">{{ $share->expense->title }} - ${{ number_format($share->amount, 2) }}</span>
+                                                                    <form action="{{ route('expense-shares.pay', $share->id) }}" method="POST" class="inline">
+                                                                        @csrf
+                                                                        <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700">
+                                                                            Pay
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
                                                 </div>
                                             @endforeach
                                         </div>

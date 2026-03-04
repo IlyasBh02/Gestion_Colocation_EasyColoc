@@ -9,6 +9,9 @@ class Colocation extends Model
     protected $fillable = [
         'name',
         'description',
+        'address',
+        'max_members',
+        'monthly_rent',
         'status',
         'owner_id',
     ];

@@ -54,6 +54,10 @@ class ColocationController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'address' => 'required|string|max:255',
+            'max_members' => 'required|integer|min:2|max:20',
+            'monthly_rent' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
         ]);
 
         if ($request->user()->hasActiveMembership()) {
@@ -63,6 +67,10 @@ class ColocationController extends Controller
         DB::transaction(function() use ($request){
             $colocation = Colocation::create([
                 'name' => $request->name,
+                'address' => $request->address,
+                'max_members' => $request->max_members,
+                'monthly_rent' => $request->monthly_rent,
+                'description' => $request->description,
                 'owner_id' => $request->user()->id,
             ]);
 
@@ -137,7 +145,7 @@ class ColocationController extends Controller
             ->where('user_id', $member->id)
             ->sum('amount');
             
-            $actualBalance = $totalShareUnpaid > 0 ? -$totalShareUnpaid : ($totalPaid - $totalShareAll);
+            $actualBalance = $totalPaid - $totalShareAll;
             
             $balances[] = [
                 'user' => $member,
@@ -148,10 +156,14 @@ class ColocationController extends Controller
             ];
         }
         
+        $settlements = [];
+        $debtorsArray = collect($balances)->filter(fn($b) => $b['unpaid'] > 0.01)->sortByDesc('unpaid')->values()->toArray();
+        $creditorsArray = collect($balances)->filter(fn($b) => $b['balance'] > 0.01)->sortByDesc('balance')->values()->toArray();
+        
         $i = 0;
         $j = 0;
         while ($i < count($debtorsArray) && $j < count($creditorsArray)) {
-            $debt = abs($debtorsArray[$i]['balance']);
+            $debt = $debtorsArray[$i]['unpaid'];
             $credit = $creditorsArray[$j]['balance'];
             $amount = min($debt, $credit);
             
@@ -161,11 +173,11 @@ class ColocationController extends Controller
                 'amount' => $amount
             ];
             
-            $debtorsArray[$i]['balance'] += $amount;
+            $debtorsArray[$i]['unpaid'] -= $amount;
             $creditorsArray[$j]['balance'] -= $amount;
             
-            if (abs($debtorsArray[$i]['balance']) < 0.01) $i++;
-            if (abs($creditorsArray[$j]['balance']) < 0.01) $j++;
+            if ($debtorsArray[$i]['unpaid'] < 0.01) $i++;
+            if ($creditorsArray[$j]['balance'] < 0.01) $j++;
         }
         
         return view('colocations.show', compact('colocation', 'isMember', 'pendingInvitation', 'expenses', 'categories', 'month', 'balances', 'settlements'));
@@ -365,7 +377,7 @@ class ColocationController extends Controller
             ->where('user_id', $member->id)
             ->sum('amount');
             
-            $actualBalance = $totalShareUnpaid > 0 ? -$totalShareUnpaid : ($totalPaid - $totalShareAll);
+            $actualBalance = $totalPaid - $totalShareAll;
             
             $balances[] = [
                 'user' => $member,
@@ -378,13 +390,13 @@ class ColocationController extends Controller
         
         // Calculate settlements
         $settlements = [];
-        $debtorsArray = collect($balances)->filter(fn($b) => $b['balance'] < -0.01)->sortBy('balance')->values()->toArray();
+        $debtorsArray = collect($balances)->filter(fn($b) => $b['unpaid'] > 0.01)->sortByDesc('unpaid')->values()->toArray();
         $creditorsArray = collect($balances)->filter(fn($b) => $b['balance'] > 0.01)->sortByDesc('balance')->values()->toArray();
         
         $i = 0;
         $j = 0;
         while ($i < count($debtorsArray) && $j < count($creditorsArray)) {
-            $debt = abs($debtorsArray[$i]['balance']);
+            $debt = $debtorsArray[$i]['unpaid'];
             $credit = $creditorsArray[$j]['balance'];
             $amount = min($debt, $credit);
             
@@ -394,11 +406,11 @@ class ColocationController extends Controller
                 'amount' => $amount
             ];
             
-            $debtorsArray[$i]['balance'] += $amount;
+            $debtorsArray[$i]['unpaid'] -= $amount;
             $creditorsArray[$j]['balance'] -= $amount;
             
-            if (abs($debtorsArray[$i]['balance']) < 0.01) $i++;
-            if (abs($creditorsArray[$j]['balance']) < 0.01) $j++;
+            if ($debtorsArray[$i]['unpaid'] < 0.01) $i++;
+            if ($creditorsArray[$j]['balance'] < 0.01) $j++;
         }
         
         $months = [

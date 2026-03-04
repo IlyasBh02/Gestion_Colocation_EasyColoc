@@ -87,7 +87,75 @@ class ColocationController extends Controller
                 ->first();
         }
         
-        return view('colocations.details', compact('colocation', 'isMember', 'pendingInvitation'));
+        $month = request()->month ?? now()->format('Y-m');
+        
+        $expensesQuery = Expense::where('colocation_id', $id)
+            ->with(['payer', 'shares.user', 'category']);
+        
+        if ($month) {
+            $expensesQuery->whereYear('date', substr($month, 0, 4))
+                         ->whereMonth('date', substr($month, 5, 2));
+        }
+        
+        $expenses = $expensesQuery->latest()->get();
+        
+        $categories = Category::all();
+        
+        $members = User::whereHas('colocations', function($q) use ($id) {
+            $q->where('colocations.id', $id)->whereNull('colocation_user.left_at');
+        })->get();
+        
+        $balances = [];
+        foreach ($members as $member) {
+            $totalPaid = Expense::where('colocation_id', $id)
+                ->where('payer_id', $member->id)
+                ->sum('amount');
+            
+            $totalShareUnpaid = ExpenseShare::whereHas('expense', function($q) use ($id) {
+                $q->where('colocation_id', $id);
+            })
+            ->where('user_id', $member->id)
+            ->where('is_paid', false)
+            ->sum('amount');
+            
+            $totalShareAll = ExpenseShare::whereHas('expense', function($q) use ($id) {
+                $q->where('colocation_id', $id);
+            })
+            ->where('user_id', $member->id)
+            ->sum('amount');
+            
+            $actualBalance = $totalShareUnpaid > 0 ? -$totalShareUnpaid : ($totalPaid - $totalShareAll);
+            
+            $balances[] = [
+                'user' => $member,
+                'total_paid' => $totalPaid,
+                'share' => $totalShareAll,
+                'unpaid' => $totalShareUnpaid,
+                'balance' => $actualBalance
+            ];
+        }
+        
+        $i = 0;
+        $j = 0;
+        while ($i < count($debtorsArray) && $j < count($creditorsArray)) {
+            $debt = abs($debtorsArray[$i]['balance']);
+            $credit = $creditorsArray[$j]['balance'];
+            $amount = min($debt, $credit);
+            
+            $settlements[] = [
+                'from' => $debtorsArray[$i]['user'],
+                'to' => $creditorsArray[$j]['user'],
+                'amount' => $amount
+            ];
+            
+            $debtorsArray[$i]['balance'] += $amount;
+            $creditorsArray[$j]['balance'] -= $amount;
+            
+            if (abs($debtorsArray[$i]['balance']) < 0.01) $i++;
+            if (abs($creditorsArray[$j]['balance']) < 0.01) $j++;
+        }
+        
+        return view('colocations.show', compact('colocation', 'isMember', 'pendingInvitation', 'expenses', 'categories', 'month', 'balances', 'settlements'));
     }
 
     /**
@@ -264,8 +332,61 @@ class ColocationController extends Controller
         
         $categories = Category::all();
         
+        // Calculate balances
         $balances = [];
+        foreach ($members as $member) {
+            $totalPaid = Expense::where('colocation_id', $colocationId)
+                ->where('payer_id', $member->id)
+                ->sum('amount');
+            
+            $totalShareUnpaid = ExpenseShare::whereHas('expense', function($q) use ($colocationId) {
+                $q->where('colocation_id', $colocationId);
+            })
+            ->where('user_id', $member->id)
+            ->where('is_paid', false)
+            ->sum('amount');
+            
+            $totalShareAll = ExpenseShare::whereHas('expense', function($q) use ($colocationId) {
+                $q->where('colocation_id', $colocationId);
+            })
+            ->where('user_id', $member->id)
+            ->sum('amount');
+            
+            $actualBalance = $totalShareUnpaid > 0 ? -$totalShareUnpaid : ($totalPaid - $totalShareAll);
+            
+            $balances[] = [
+                'user' => $member,
+                'total_paid' => $totalPaid,
+                'share' => $totalShareAll,
+                'unpaid' => $totalShareUnpaid,
+                'balance' => $actualBalance
+            ];
+        }
+        
+        // Calculate settlements
         $settlements = [];
+        $debtorsArray = collect($balances)->filter(fn($b) => $b['balance'] < -0.01)->sortBy('balance')->values()->toArray();
+        $creditorsArray = collect($balances)->filter(fn($b) => $b['balance'] > 0.01)->sortByDesc('balance')->values()->toArray();
+        
+        $i = 0;
+        $j = 0;
+        while ($i < count($debtorsArray) && $j < count($creditorsArray)) {
+            $debt = abs($debtorsArray[$i]['balance']);
+            $credit = $creditorsArray[$j]['balance'];
+            $amount = min($debt, $credit);
+            
+            $settlements[] = [
+                'from' => $debtorsArray[$i]['user'],
+                'to' => $creditorsArray[$j]['user'],
+                'amount' => $amount
+            ];
+            
+            $debtorsArray[$i]['balance'] += $amount;
+            $creditorsArray[$j]['balance'] -= $amount;
+            
+            if (abs($debtorsArray[$i]['balance']) < 0.01) $i++;
+            if (abs($creditorsArray[$j]['balance']) < 0.01) $j++;
+        }
         
         $months = [
             ['value' => '1', 'name' => 'January'],

@@ -39,10 +39,9 @@ class ExpenceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
+            'description' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
             'category_id' => 'required|exists:categories,id',
-            'payer_id' => 'required|exists:users,id',
             'date' => 'required|date',
         ]);
 
@@ -57,10 +56,10 @@ class ExpenceController extends Controller
         $colocation_id = $membership->id;
 
         $expense = Expense::create([
-            'title' => $request->title,
+            'title' => $request->description,
             'amount' => $request->amount,
             'date' => $request->date,
-            'payer_id' => $request->payer_id,
+            'payer_id' => auth()->id(),
             'colocation_id' => $colocation_id,
             'category_id' => $request->category_id,
         ]);
@@ -73,7 +72,7 @@ class ExpenceController extends Controller
         $shareAmount = $request->amount / $roommates->count();
 
         foreach ($roommates as $roommate) {
-            $isPaid = $roommate->id === $request->payer_id;
+            $isPaid = $roommate->id === auth()->id();
 
             ExpenseShare::create([
                 'expense_id' => $expense->id,

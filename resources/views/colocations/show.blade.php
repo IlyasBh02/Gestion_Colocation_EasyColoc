@@ -75,7 +75,7 @@
 
                                 @if($colocation->members->contains(Auth::user()) || $colocation->owner_id === Auth::id())
                                     <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800">
-                                        <form action="{{ route('expenses.store', $colocation) }}" method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                        <form action="{{ route('expenses.store') }}" method="POST" class="grid grid-cols-1 md:grid-cols-5 gap-3">
                                             @csrf
                                             <div>
                                                 <select name="category_id" required class="w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm text-sm">
@@ -103,29 +103,31 @@
 
                                 <div class="space-y-2">
                                     @forelse($expenses as $expense)
-                                        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600 flex items-center justify-between">
-                                            <div class="flex items-center space-x-4 flex-1">
-                                                <div class="text-2xl">{{ $expense->category->icon }}</div>
-                                                <div class="flex-1">
-                                                    <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $expense->description }}</p>
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $expense->category->name }} • {{ $expense->payer->name }} • {{ $expense->date->format('M d, Y') }}</p>
+                                        <a href="{{ route('expenses.show', $expense->id) }}" class="block">
+                                            <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center justify-between">
+                                                <div class="flex items-center space-x-4 flex-1">
+                                                    <div class="text-2xl">{{ $expense->category->icon }}</div>
+                                                    <div class="flex-1">
+                                                        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $expense->title }}</p>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ $expense->category->name }} • {{ $expense->payer->name }} • {{ $expense->date->format('M d, Y') }}</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <p class="font-bold text-gray-900 dark:text-gray-100">${{ number_format($expense->amount, 2) }}</p>
+                                                    </div>
                                                 </div>
-                                                <div class="text-right">
-                                                    <p class="font-bold text-gray-900 dark:text-gray-100">${{ number_format($expense->amount, 2) }}</p>
-                                                </div>
+                                                @if($expense->payer_id === Auth::id() || $colocation->owner_id === Auth::id())
+                                                    <form action="{{ route('expenses.destroy', $expense->id) }}" method="POST" class="ml-4" onsubmit="return confirm('Delete this expense?');" onclick="event.stopPropagation();">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
+                                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                @endif
                                             </div>
-                                            @if($expense->payer_id === Auth::id() || $colocation->owner_id === Auth::id())
-                                                <form action="{{ route('expenses.destroy', [$colocation, $expense]) }}" method="POST" class="ml-4" onsubmit="return confirm('Delete this expense?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300">
-                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                    </button>
-                                                </form>
-                                            @endif
-                                        </div>
+                                        </a>
                                     @empty
                                         <div class="p-8 text-center text-gray-500 dark:text-gray-400">
                                             <p>No expenses for this month.</p>
@@ -201,7 +203,7 @@
                                                 <div class="flex justify-between items-center">
                                                     <div>
                                                         <p class="font-semibold text-gray-900 dark:text-gray-100">{{ $balance['user']->name }}</p>
-                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Paid: ${{ number_format($balance['total_paid'], 2) }} | Share: ${{ number_format($balance['share'], 2) }}</p>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Paid: ${{ number_format($balance['total_paid'], 2) }} | Share: ${{ number_format($balance['share'], 2) }} | Unpaid: ${{ number_format($balance['unpaid'], 2) }}</p>
                                                     </div>
                                                     <div class="text-right">
                                                         @if($balance['balance'] > 0.01)

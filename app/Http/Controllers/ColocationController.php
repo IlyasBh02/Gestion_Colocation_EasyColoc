@@ -19,7 +19,20 @@ class ColocationController extends Controller
      */
     public function index()
     {
-        $colocations = Colocation::with('owner')->get();
+        // Show only colocations where user has pending invitation or is member
+        $colocations = Colocation::with('owner')
+            ->where(function($query) {
+                $query->whereHas('invitations', function($q) {
+                    $q->where('email', auth()->user()->email)
+                      ->where('status', 'pending');
+                })
+                ->orWhereHas('members', function($q) {
+                    $q->where('users.id', auth()->id())
+                      ->whereNull('colocation_user.left_at');
+                });
+            })
+            ->get();
+        
         return view('colocations.index', compact('colocations'));
     }
 
